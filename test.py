@@ -1,11 +1,10 @@
 import telebot
 import requests
 import json
-import info
 from datetime import datetime
 
 token = '5016636848:AAHDnRgJKrdtY9cs7Cy67uSrDnKyl1BswqQ'
-bot = telebot.TeleBot(info.TOKEN)
+bot = telebot.TeleBot(token)
 
 max_count = 5
 
@@ -165,7 +164,10 @@ def find_hotel(message,hotel_info_dict):
     PHOTO - вывод фотографий отеля, использую ID отеля'''
     url_search = "https://hotels4.p.rapidapi.com/locations/v2/search"
     querystring_search = {"query": hotel_info_dict['city']}
-    headers = info.HEADERS
+    headers = {
+        "X-RapidAPI-Host": "hotels4.p.rapidapi.com",
+        "X-RapidAPI-Key": "527b11d531msh6c265bd924a04d8p1167b4jsnef881ce84a9f"
+    }
     try:
         response_search = requests.get(url_search, headers=headers, params=querystring_search)
         response_new_search = json.loads(response_search.text)
