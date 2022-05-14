@@ -1,14 +1,11 @@
 import telebot
 import requests
 import json
-from decouple import config
 from datetime import datetime
+import os
 
-token = config('TOKEN')
-bot = telebot.TeleBot(token)
-
+bot = telebot.TeleBot(os.getenv('TOKEN'))
 max_count = 5
-
 
 @bot.message_handler(content_types=['text'])
 def get_info(message):
@@ -180,7 +177,10 @@ def find_hotel(message, hotel_info_dict):
     PHOTO - вывод фотографий отеля, использую ID отеля'''
     url_search = "https://hotels4.p.rapidapi.com/locations/v2/search"
     querystring_search = {"query": hotel_info_dict['city']}
-    headers = config('HEADERS')
+    headers = {
+        "X-RapidAPI-Host": "hotels4.p.rapidapi.com",
+        "X-RapidAPI-Key": os.getenv('APIKEY ')
+    }
     try:
         response_search = requests.get(url_search, headers=headers, params=querystring_search)
         response_new_search = json.loads(response_search.text)
