@@ -253,9 +253,10 @@ def hotel_information(message):
             Адрес - {hotel_list[hotel]['address']['countryName']},{hotel_list[hotel]['address']['streetAddress'] if 'streetAddress' in hotel_list[hotel]['address'] else 'Нет названия улицы'}
             Расположение от центра  - {hotel_list[hotel]['landmarks'][0]['distance']}
             Цена  за ночь - {hotel_list[hotel]['ratePlan']['price']['current']} 
-            Цена за весь период {int(hotel_list[hotel]['ratePlan']['price']['current'][1:]) *
-                                 int((datetime.strptime(user_dict[message.chat.id]['date_out'], "%Y-%m-%d") - datetime.strptime(user_dict[message.chat.id]['date_in'], "%Y-%m-%d")).days)}
-            ''')
+            Цена за весь период - {int(hotel_list[hotel]['ratePlan']['price']['current'][1:]) *
+                                   int((datetime.strptime(user_dict[message.chat.id]['date_out'], "%Y-%m-%d") - datetime.strptime(user_dict[message.chat.id]['date_in'], "%Y-%m-%d")).days)}
+            Ссылка на отель - https://ru.hotels.com/ho{hotel_list[hotel]['id']}
+            ''', disable_web_page_preview=True)
             if user_dict[message.chat.id]['loading_photo'] == 'Да':
                 bot.send_message(message.chat.id, 'Фото отеля')
                 photos_id_hotel = hotel_list[hotel]['id']
@@ -266,5 +267,6 @@ def hotel_information(message):
                     bot.send_photo(message.chat.id, photo_for_user)
     except ValueError:
         bot.send_message(message.from_user.id, "Что-то пошло не так")
+
 
 bot.polling(none_stop=True, interval=0)
