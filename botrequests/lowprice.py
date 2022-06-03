@@ -10,7 +10,9 @@ headers = {
 
 
 def city_id(name_city):
-    '''def city_id - получаем id города, в котором будем искать отели'''
+    """
+    def city_id - получаем id города, в котором будем искать отели
+    """
     url = "https://hotels4.p.rapidapi.com/locations/v2/search"
     querystring = {"query": name_city}
     response = requests.get(url, headers=headers, params=querystring)
@@ -26,10 +28,12 @@ def city_id(name_city):
                 return elem_city['destinationId'], elem_city['name']
 
 
-def hotel_info(destinationId, num):
-    '''def hotel_info - получаем информацию по отелям'''
+def hotel_info(destination_id, num):
+    """
+    def hotel_info - получаем информацию по отелям
+    """
     url_list = "https://hotels4.p.rapidapi.com/properties/list"
-    querystring = {"destinationId": destinationId, "pageNumber": "1", "pageSize": "25", "checkIn": "2020-01-08",
+    querystring = {"destinationId": destination_id, "pageNumber": "1", "pageSize": "25", "checkIn": "2020-01-08",
                    "checkOut": "2020-01-15", "adults1": "1", "sortOrder": "PRICE"}
     response_list = requests.get(url_list, headers=headers, params=querystring)
     response_new_list = json.loads(response_list.text)
@@ -39,7 +43,9 @@ def hotel_info(destinationId, num):
 
 
 def hotel_photo(photos_id_hotel, num):
-    ''' def hotel_photo -  получаем фотографии отеля'''
+    """
+    def hotel_photo -  получаем фотографии отеля
+    """
     url_photos = "https://hotels4.p.rapidapi.com/properties/get-hotel-photos"
     querystring = {"id": photos_id_hotel}
     response_photos = requests.get(url_photos, headers=headers, params=querystring)
