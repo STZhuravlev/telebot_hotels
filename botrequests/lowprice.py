@@ -13,32 +13,38 @@ def city_id(name_city):
     """
     def city_id - получаем id города, в котором будем искать отели
     """
+
     url = "https://hotels4.p.rapidapi.com/locations/v2/search"
     querystring = {"query": name_city}
     response = requests.get(url, headers=headers, params=querystring)
     response_new = json.loads(response.text)
     response_hotel_city_group = list(filter(lambda x: x['group'] == 'CITY_GROUP', response_new['suggestions']))
-    destination_Id_filter = list(filter(lambda city: city['type'] == 'CITY', response_hotel_city_group[0]['entities']))
-    if not destination_Id_filter:
-        return None
+    destination_id_filter = list(filter(lambda city: city['type'] == 'CITY', response_hotel_city_group[0]['entities']))
+    if not destination_id_filter:
+        return None, None
     else:
-        for elem_city in destination_Id_filter:
+        for elem_city in destination_id_filter:
             my_city = elem_city['caption'].replace(name_city[0:3], '', 1)
             if name_city[0:3] in my_city:
                 return elem_city['destinationId'], elem_city['name']
 
 
-def hotel_info(destination_id, num):
+def hotel_info(destination_id, num, command):
     """
     def hotel_info - получаем информацию по отелям
     """
+    if command == '/highprice':
+        rev = True
+    else:
+        rev = False
     url_list = "https://hotels4.p.rapidapi.com/properties/list"
     querystring = {"destinationId": destination_id, "pageNumber": "1", "pageSize": "25", "checkIn": "2020-01-08",
                    "checkOut": "2020-01-15", "adults1": "1", "sortOrder": "PRICE"}
     response_list = requests.get(url_list, headers=headers, params=querystring)
     response_new_list = json.loads(response_list.text)
     result_list = response_new_list['data']['body']['searchResults']['results']
-    result_sort = sorted(result_list, key=lambda price: price['ratePlan']['price']['current'], reverse=False)
+    result_sort = sorted(result_list, key=lambda price: int(price['ratePlan']['price']['current'][1:]), reverse=rev)
+    print(result_sort)
     return result_sort[:num]
 
 

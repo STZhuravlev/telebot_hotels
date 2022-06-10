@@ -10,10 +10,12 @@ max_count = 5
 
 
 @bot.message_handler(commands=['lowprice'])
+@bot.message_handler(commands=['highprice'])
 def first_command(message):
     """
     def first_command - делаем запрос в каком городе будем искать отели
     """
+    user_dict[message.chat.id] = {'command': message.text}
     msg = bot.send_message(message.from_user.id, "В каком городе будем искать отели?")
     bot.register_next_step_handler(msg, get_city)
 
@@ -47,14 +49,14 @@ def get_city(message):
         city = message.text.capitalize()
         city_id, name_city = botrequests.lowprice.city_id(city)
         if city_id is not None:
-            user_dict[message.chat.id] = {'city_id': city_id}
+            user_dict[message.chat.id].update({'city_id': city_id})
             msg = bot.send_message(message.from_user.id, f'Ищем отели в городе {name_city}')
             bot.send_message(message.from_user.id,
                              "Какое количество отелей вывести на экран?(Максимальное количество - 5)")
             bot.register_next_step_handler(msg, get_count_hotel)
         else:
-            msg = bot.send_message(message.from_user.id, 'Поиск не распознаёт название города, повторите попытку')
-            first_command(msg)
+            msg = bot.send_message(message.from_user.id, 'Поиск не распознаёт название города, повторите ввод города')
+            bot.register_next_step_handler(msg, get_city)
     except ValueError:
         bot.send_message(message.from_user.id, "Что-то пошло не так")
 
@@ -247,7 +249,8 @@ def hotel_information(message):
     photo_list - получаем список фотографий отелей
     """
     try:
-        hotel_list = botrequests.lowprice.hotel_info(user_dict[message.chat.id]['city_id'], max_count)
+        hotel_list = botrequests.lowprice.hotel_info(user_dict[message.chat.id]['city_id'], max_count,
+                                                     user_dict[message.chat.id]['command'])
         for hotel in range(user_dict[message.chat.id]['count_hotel']):
             bot.send_message(message.chat.id, f'''{hotel + 1}.Название отеля - {hotel_list[hotel]['name']}
             Адрес - {hotel_list[hotel]['address']['countryName']},{hotel_list[hotel]['address']['streetAddress'] if 'streetAddress' in hotel_list[hotel]['address'] else 'Нет названия улицы'}
