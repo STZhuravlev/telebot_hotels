@@ -44,7 +44,6 @@ def hotel_info(destination_id, num, command):
     response_new_list = json.loads(response_list.text)
     result_list = response_new_list['data']['body']['searchResults']['results']
     result_sort = sorted(result_list, key=lambda price: int(price['ratePlan']['price']['current'][1:]), reverse=rev)
-    print(result_sort)
     return result_sort[:num]
 
 

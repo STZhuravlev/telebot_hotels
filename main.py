@@ -3,6 +3,7 @@ import os
 from datetime import date, timedelta, datetime
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 import botrequests.lowprice
+import botrequests.bestdeal
 
 bot = telebot.TeleBot(os.getenv('TOKEN'))
 user_dict = dict()
@@ -11,6 +12,7 @@ max_count = 5
 
 @bot.message_handler(commands=['lowprice'])
 @bot.message_handler(commands=['highprice'])
+@bot.message_handler(commands=['bestdeal'])
 def first_command(message):
     """
     def first_command - делаем запрос в каком городе будем искать отели
@@ -50,15 +52,142 @@ def get_city(message):
         city_id, name_city = botrequests.lowprice.city_id(city)
         if city_id is not None:
             user_dict[message.chat.id].update({'city_id': city_id})
-            msg = bot.send_message(message.from_user.id, f'Ищем отели в городе {name_city}')
-            bot.send_message(message.from_user.id,
-                             "Какое количество отелей вывести на экран?(Максимальное количество - 5)")
-            bot.register_next_step_handler(msg, get_count_hotel)
+            bot.send_message(message.from_user.id, f'Ищем отели в городе {name_city}')
+            if user_dict[message.chat.id]['command'] == "/bestdeal":
+                msg = bot.send_message(message.from_user.id,
+                                       "Введите минимальную цену проживания в отеле за сутки")
+                bot.register_next_step_handler(msg, min_price_def)
+            else:
+                msg = bot.send_message(message.from_user.id,
+                                       "Какое количество отелей вывести на экран?(Максимальное количество - 5)")
+                bot.register_next_step_handler(msg, get_count_hotel)
         else:
             msg = bot.send_message(message.from_user.id, 'Поиск не распознаёт название города, повторите ввод города')
             bot.register_next_step_handler(msg, get_city)
     except ValueError:
         bot.send_message(message.from_user.id, "Что-то пошло не так")
+
+
+def min_price_def(message):
+    """
+    def min_price_def - получаем минимальную цену для фильтрации отелей
+    """
+    try:
+        min_price = int(message.text)
+        if min_price < 0:
+            min_price_verify(message)
+        else:
+            user_dict[message.chat.id].update({'min_price': min_price})
+            bestdeal_list = botrequests.bestdeal.min_price(user_dict[message.chat.id]['city_id'], min_price)
+            if not bestdeal_list:
+                msg = bot.send_message(message.from_user.id,
+                                       "К сожеления отелей с такой ценой нет. Введите цену меньше")
+                bot.register_next_step_handler(msg, min_price_def)
+            else:
+                user_dict[message.chat.id].update({'bestdeal_list': bestdeal_list})
+                msg = bot.send_message(message.from_user.id, "Введите максимальную цену проживания в отеле за сутки")
+                bot.register_next_step_handler(msg, max_price_def)
+    except ValueError:
+        min_price_verify(message)
+
+
+def min_price_verify(message):
+    """
+    def min_price_verify - верификация значения минимальная цена
+    На случай, когда пользователь вводит не число или число меньше 0
+    """
+    msg = bot.send_message(message.from_user.id, "Необходимо ввести  положительное число")
+    bot.register_next_step_handler(msg, min_price_def)
+
+
+def max_price_def(message):
+    """
+        def max_price_def - получаем максимальную цену для фильтрации отелей
+    """
+    try:
+        max_price = int(message.text)
+        if max_price < user_dict[message.chat.id]['min_price']:
+            user_dict[message.chat.id].update({'max_price': user_dict[message.chat.id]['min_price']})
+        else:
+            user_dict[message.chat.id].update({'max_price': max_price})
+
+        bestdeal_list = botrequests.bestdeal.max_price(user_dict[message.chat.id]['bestdeal_list'],
+                                                       user_dict[message.chat.id]['max_price'])
+        user_dict[message.chat.id].update({'bestdeal_list': bestdeal_list})
+        msg = bot.send_message(message.from_user.id, "Введите минимальное расстояние отеля от центра")
+        bot.register_next_step_handler(msg, min_distance_def)
+    except ValueError:
+        max_price_verify(message)
+
+
+def max_price_verify(message):
+    """
+    def max_price_verify - верификация значения максимальная цена
+    На случай, когда пользователь вводит не число
+    """
+    msg = bot.send_message(message.from_user.id, "Необходимо ввести число ")
+    bot.register_next_step_handler(msg, max_price_def)
+
+
+def min_distance_def(message):
+    """
+    def min_distance_def - получаем минимальное  расстояние от центра для фильтрации отелей
+    """
+    try:
+        min_distance = int(message.text)
+        if min_distance < 0:
+            min_distance_verify(message)
+        else:
+            user_dict[message.chat.id].update({'min_distance': min_distance})
+            bestdeal_list = botrequests.bestdeal.min_distance(user_dict[message.chat.id]['bestdeal_list'], min_distance)
+            if not bestdeal_list:
+                msg = bot.send_message(message.from_user.id,
+                                       "К сожеления отелей на таком расстоянии нет. Введите больше расстояние")
+                bot.register_next_step_handler(msg, min_distance_def)
+            else:
+                user_dict[message.chat.id].update({'bestdeal_list': bestdeal_list})
+                msg = bot.send_message(message.from_user.id, "Введите максимальное расстояние отеля от центра")
+                bot.register_next_step_handler(msg, max_distance_def)
+    except ValueError:
+        min_distance_verify(message)
+
+
+def min_distance_verify(message):
+    """
+    def min_distance_verify - верификация значения минимальное расстояние от центра
+    На случай, когда пользователь вводит не число иличисло меньше 0
+    """
+    msg = bot.send_message(message.from_user.id, "Необходимо ввести положительное число")
+    bot.register_next_step_handler(msg, min_distance_def)
+
+
+def max_distance_def(message):
+    """
+        def max_distance_def - получаем максимальную расстояние от центра для фильтрации отелей
+    """
+    try:
+        max_distance = int(message.text)
+        if max_distance < user_dict[message.chat.id]['min_distance']:
+            user_dict[message.chat.id].update({'max_distance': user_dict[message.chat.id]['min_distance']})
+        else:
+            user_dict[message.chat.id].update({'max_distance': max_distance})
+        bestdeal_list = botrequests.bestdeal.max_distance(user_dict[message.chat.id]['bestdeal_list'],
+                                                          user_dict[message.chat.id]['max_distance'])
+        user_dict[message.chat.id].update({'bestdeal_list': bestdeal_list})
+        msg = bot.send_message(message.from_user.id,
+                               "Какое количество отелей вывести на экран?(Максимальное количество - 5)")
+        bot.register_next_step_handler(msg, get_count_hotel)
+    except ValueError:
+        max_distance_verify(message)
+
+
+def max_distance_verify(message):
+    """
+    def max_distance_verify - верификация значения максимальная цена
+    На случай, когда пользователь вводит не число
+    """
+    msg = bot.send_message(message.from_user.id, "Необходимо ввести число")
+    bot.register_next_step_handler(msg, max_distance_def)
 
 
 def get_count_hotel(message):
@@ -249,8 +378,11 @@ def hotel_information(message):
     photo_list - получаем список фотографий отелей
     """
     try:
-        hotel_list = botrequests.lowprice.hotel_info(user_dict[message.chat.id]['city_id'], max_count,
-                                                     user_dict[message.chat.id]['command'])
+        if user_dict[message.chat.id]['command'] == "/bestdeal":
+            hotel_list = user_dict[message.chat.id]['bestdeal_list']
+        else:
+            hotel_list = botrequests.lowprice.hotel_info(user_dict[message.chat.id]['city_id'], max_count,
+                                                         user_dict[message.chat.id]['command'])
         for hotel in range(user_dict[message.chat.id]['count_hotel']):
             bot.send_message(message.chat.id, f'''{hotel + 1}.Название отеля - {hotel_list[hotel]['name']}
             Адрес - {hotel_list[hotel]['address']['countryName']},{hotel_list[hotel]['address']['streetAddress'] if 'streetAddress' in hotel_list[hotel]['address'] else 'Нет названия улицы'}
