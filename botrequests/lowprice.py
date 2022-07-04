@@ -1,7 +1,6 @@
-import requests
-import json
 import os
 import random
+import botrequests.requests_api
 
 headers = {
     "X-RapidAPI-Host": "hotels4.p.rapidapi.com",
@@ -16,8 +15,9 @@ def city_id(name_city):
 
     url = "https://hotels4.p.rapidapi.com/locations/v2/search"
     querystring = {"query": name_city}
-    response = requests.get(url, headers=headers, params=querystring)
-    response_new = json.loads(response.text)
+    response_new = botrequests.requests_api.request_to_api(url, headers, querystring)
+    if not response_new:
+        return None, None
     response_hotel_city_group = list(filter(lambda x: x['group'] == 'CITY_GROUP', response_new['suggestions']))
     destination_id_filter = list(filter(lambda city: city['type'] == 'CITY', response_hotel_city_group[0]['entities']))
     if not destination_id_filter:
@@ -40,9 +40,10 @@ def hotel_info(destination_id, num, command):
     url_list = "https://hotels4.p.rapidapi.com/properties/list"
     querystring = {"destinationId": destination_id, "pageNumber": "1", "pageSize": "25", "checkIn": "2020-01-08",
                    "checkOut": "2020-01-15", "adults1": "1", "sortOrder": "PRICE"}
-    response_list = requests.get(url_list, headers=headers, params=querystring)
-    response_new_list = json.loads(response_list.text)
-    result_list = response_new_list['data']['body']['searchResults']['results']
+    response_new = botrequests.requests_api.request_to_api(url_list, headers, querystring)
+    if not response_new:
+        return None
+    result_list = response_new['data']['body']['searchResults']['results']
     result_sort = sorted(result_list, key=lambda price: int(price['ratePlan']['price']['current'][1:]), reverse=rev)
     return result_sort[:num]
 
@@ -53,8 +54,9 @@ def hotel_photo(photos_id_hotel, num):
     """
     url_photos = "https://hotels4.p.rapidapi.com/properties/get-hotel-photos"
     querystring = {"id": photos_id_hotel}
-    response_photos = requests.get(url_photos, headers=headers, params=querystring)
-    response__new_photos = json.loads(response_photos.text)
-    photos = response__new_photos['hotelImages']
+    response_new = botrequests.requests_api.request_to_api(url_photos, headers, querystring)
+    if not response_new:
+        return None
+    photos = response_new['hotelImages']
     random.shuffle(photos)
     return photos[:num]

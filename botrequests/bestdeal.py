@@ -1,6 +1,5 @@
-import requests
-import json
 import os
+import botrequests.requests_api
 
 headers = {
     "X-RapidAPI-Host": "hotels4.p.rapidapi.com",
@@ -16,9 +15,10 @@ def min_price(destination_id, min_price):
     url_list = "https://hotels4.p.rapidapi.com/properties/list"
     querystring = {"destinationId": destination_id, "pageNumber": "1", "pageSize": "25", "checkIn": "2020-01-08",
                    "checkOut": "2020-01-15", "adults1": "1", "sortOrder": "PRICE"}
-    response_list = requests.get(url_list, headers=headers, params=querystring)
-    response_new_list = json.loads(response_list.text)
-    result_list = response_new_list['data']['body']['searchResults']['results']
+    response_new = botrequests.requests_api.request_to_api(url_list, headers, querystring)
+    if not response_new:
+        return None
+    result_list = response_new['data']['body']['searchResults']['results']
     result_filter = list(filter(lambda price: int(price['ratePlan']['price']['current'][1:]) >= min_price, result_list))
     return result_filter
 
