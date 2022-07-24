@@ -1,6 +1,7 @@
 import requests
 import json
 
+
 def request_to_api(url, headers, querystring):
     try:
         response = requests.get(url, headers=headers, params=querystring, timeout=15)

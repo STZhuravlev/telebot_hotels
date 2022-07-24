@@ -1,9 +1,9 @@
-import os
 import botrequests.requests_api
+from config_data import config
 
 headers = {
     "X-RapidAPI-Host": "hotels4.p.rapidapi.com",
-    "X-RapidAPI-Key": os.getenv('APIKEY')
+    "X-RapidAPI-Key": config.RAPID_API_KEY
 }
 
 
