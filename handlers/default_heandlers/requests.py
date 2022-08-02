@@ -7,6 +7,9 @@ from datetime import date, timedelta, datetime
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 import botrequests.lowprice
 import botrequests.bestdeal
+from keyboards.inline.count_hotel import kb_count_hotel
+from keyboards.inline.loading_photo import kb_loading_photo
+from keyboards.inline.count_photos import kb_count_photos
 from loader import bot
 from utils.dict_class import user_dict, User
 
@@ -24,7 +27,6 @@ def history_info(message: Message):
         cur = conn.cursor()
         cur.execute(f'SELECT * FROM history_search WHERE user_id={message.from_user.id}')
         for i in cur.fetchall():
-            print(i)
             bot.send_message(message.from_user.id,
                              f'Команда = {i[1]}, Дата и время запроса = {i[2]}, Найденные отели = {i[3]} ')
         conn.close()
@@ -195,9 +197,6 @@ def max_distance_def(message):
             bestdeal_list = botrequests.bestdeal.max_distance(user_dict[message.chat.id].bestdeal_list,
                                                               user_dict[message.chat.id].max_distance)
             user_dict[message.chat.id].bestdeal_list = bestdeal_list
-            # msg = bot.send_message(message.from_user.id,
-            #                        "Какое количество отелей вывести на экран?(Максимальное количество - 5)")
-            # bot.register_next_step_handler(msg, get_count_hotel)
             get_count_hotel(message)
     except ValueError:
         bot.send_message(message.from_user.id, "Что-то пошло не так")
@@ -214,20 +213,16 @@ def max_distance_verify(message):
 
 def get_count_hotel(message):
     """
-    def get_count_hotel - получаем количество отелей, которое выведем на экран пользователю
-    Для этого используем кнопки
+    def get_count_hotel - вызываем клавиатуру для получения количества отелей для вывода на экран
     """
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton(text='1', callback_data=1))
-    markup.add(types.InlineKeyboardButton(text='2', callback_data=2))
-    markup.add(types.InlineKeyboardButton(text='3', callback_data=3))
-    markup.add(types.InlineKeyboardButton(text='4', callback_data=4))
-    markup.add(types.InlineKeyboardButton(text='5', callback_data=5))
-    bot.send_message(message.chat.id, text="Какое количество отелей вывести на экран?", reply_markup=markup)
+    bot.send_message(message.chat.id, text="Какое количество отелей вывести на экран?", reply_markup=kb_count_hotel())
 
 
 @bot.callback_query_handler(func=lambda call: call.data in ['1', '2', '3', '4', '5'])
 def query_handler(call):
+    """
+       def query_handler - получаем с клавиатуры количество выводимых на экран отелей
+       """
     answer = ''
     if call.data == '1':
         answer = '1 отель'
@@ -251,17 +246,19 @@ def query_handler(call):
 
 def get_loading_photo(message):
     """
-    def get_loading_photo - спрашивает у пользователя загружать фотографии или нет
+    def get_loading_photo - вызываем клавиатуру для запроса у пользователя загружать фотографии или нет
 
     """
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton(text='Да', callback_data='Да'))
-    markup.add(types.InlineKeyboardButton(text='Нет', callback_data='Нет'))
-    bot.send_message(message.chat.id, text="Хотите загрузить фото для отеля?", reply_markup=markup)
+
+    bot.send_message(message.chat.id, text="Хотите загрузить фото для отеля?", reply_markup=kb_loading_photo())
 
 
 @bot.callback_query_handler(func=lambda call: call.data in ['Да', 'Нет'])
 def query_handler(call):
+    """
+    def query_handler - получаем с клавиатуры  ответ от пользователя загружать фотографии или нет
+
+    """
     if call.data == 'Да':
         user_dict[call.message.chat.id].loading_photo = call.data
         get_count_photos(call.message)
@@ -273,21 +270,20 @@ def query_handler(call):
 
 def get_count_photos(message):
     """
-    get_count_photos - получаем количество фотографий, которое выведем на экран
+    get_count_photos - вызываем клавиатуру для получения количества фотографий для вывода на экран
 
     """
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton(text='1', callback_data='1photo'))
-    markup.add(types.InlineKeyboardButton(text='2', callback_data='2photo'))
-    markup.add(types.InlineKeyboardButton(text='3', callback_data='3photo'))
-    markup.add(types.InlineKeyboardButton(text='4', callback_data='4photo'))
-    markup.add(types.InlineKeyboardButton(text='5', callback_data='5photo'))
-    bot.send_message(message.chat.id, text="Какое количество фотографий отеля вывести на экран?", reply_markup=markup)
+
+    bot.send_message(message.chat.id, text="Какое количество фотографий отеля вывести на экран?", reply_markup=kb_count_photos())
 
 
 @bot.callback_query_handler(func=lambda call: call.data in ['1photo', '2photo', '3photo', '4photo', '5photo'])
 def query_handler(call):
-    # bot.answer_callback_query(callback_query_id=call.id, text='Спасибо за честный ответ!')
+    """
+    query_handler - получаем с клавиатуры количество фотографий, которое выведем на экран
+
+    """
+
     if call.data == '1photo':
         user_dict[call.message.chat.id].count_photo = 1
     elif call.data == '2photo':
