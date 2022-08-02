@@ -1,4 +1,3 @@
-# import os
 import random
 import botrequests.requests_api
 from config_data import config
@@ -7,9 +6,6 @@ headers = {
     "X-RapidAPI-Host": "hotels4.p.rapidapi.com",
     "X-RapidAPI-Key": config.RAPID_API_KEY
 }
-
-# print(os.getenv('APIKEY'))
-# print(config.RAPID_API_KEY)
 
 
 def city_id(name_city):

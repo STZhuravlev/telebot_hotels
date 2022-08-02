@@ -1,31 +1,35 @@
 from telebot.types import Message
 from telebot import types
 
+import database.databaseSQL
+import sqlite3
 from datetime import date, timedelta, datetime
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 import botrequests.lowprice
 import botrequests.bestdeal
 from loader import bot
-from keyboards.inline import count_hotel
-
-user_dict = dict()
-max_count = 5
+from utils.dict_class import user_dict, User
 
 
-class User():
-    def __init__(self):
-        self.command = None
-        self.city_id = None
-        self.min_price = None
-        self.bestdeal_list = None
-        self.max_price = None
-        self.min_distance = None
-        self.max_distance = None
-        self.count_hotel = None
-        self.loading_photo = None
-        self.count_photo = None
-        self.date_out = None
-        self.date_in = None
+# import keyboards.inline.count_hotel
+
+@bot.message_handler(commands=['history'])
+def history_info(message: Message):
+    """
+    def history_info - выводим историю поиска отелей
+    """
+    try:
+        bot.send_message(message.from_user.id, "Выводим историю поиска отелей")
+        conn = sqlite3.connect('Too_Easy_Travel.db')
+        cur = conn.cursor()
+        cur.execute(f'SELECT * FROM history_search WHERE user_id={message.from_user.id}')
+        for i in cur.fetchall():
+            print(i)
+            bot.send_message(message.from_user.id,
+                             f'Команда = {i[1]}, Дата и время запроса = {i[2]}, Найденные отели = {i[3]} ')
+        conn.close()
+    except sqlite3.OperationalError:
+        bot.send_message(message.from_user.id, "База данных ещё пуста")
 
 
 @bot.message_handler(commands=['lowprice', 'highprice', 'bestdeal'])
@@ -34,6 +38,10 @@ def first_command(message: Message):
     def first_command - делаем запрос в каком городе будем искать отели
     """
     user_dict[message.chat.id] = User()
+    user_dict[message.chat.id].id = message.chat.id
+    now = datetime.now()
+    data_now = now.strftime("%d-%m-%Y %H:%M")
+    user_dict[message.chat.id].data = data_now
     user_dict[message.chat.id].command = message.text
     msg = bot.send_message(message.from_user.id, "В каком городе будем искать отели?")
     bot.register_next_step_handler(msg, get_city)
@@ -276,21 +284,22 @@ def get_count_photos(message):
     markup.add(types.InlineKeyboardButton(text='5', callback_data='5photo'))
     bot.send_message(message.chat.id, text="Какое количество фотографий отеля вывести на экран?", reply_markup=markup)
 
+
 @bot.callback_query_handler(func=lambda call: call.data in ['1photo', '2photo', '3photo', '4photo', '5photo'])
 def query_handler(call):
-        # bot.answer_callback_query(callback_query_id=call.id, text='Спасибо за честный ответ!')
-        if call.data == '1photo':
-            user_dict[call.message.chat.id].count_photo = 1
-        elif call.data == '2photo':
-            user_dict[call.message.chat.id].count_photo = 2
-        elif call.data == '3photo':
-            user_dict[call.message.chat.id].count_photo = 3
-        elif call.data == '4photo':
-            user_dict[call.message.chat.id].count_photo = 4
-        elif call.data == '5photo':
-            user_dict[call.message.chat.id].count_photo = 5
-        set_date_in(call.message)
-        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id)  # убирает кнопки
+    # bot.answer_callback_query(callback_query_id=call.id, text='Спасибо за честный ответ!')
+    if call.data == '1photo':
+        user_dict[call.message.chat.id].count_photo = 1
+    elif call.data == '2photo':
+        user_dict[call.message.chat.id].count_photo = 2
+    elif call.data == '3photo':
+        user_dict[call.message.chat.id].count_photo = 3
+    elif call.data == '4photo':
+        user_dict[call.message.chat.id].count_photo = 4
+    elif call.data == '5photo':
+        user_dict[call.message.chat.id].count_photo = 5
+    set_date_in(call.message)
+    bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id)  # убирает кнопки
 
 
 def set_date_in(message):
@@ -396,24 +405,32 @@ def hotel_information(message):
         if user_dict[message.chat.id].command == "/bestdeal":
             hotel_list = user_dict[message.chat.id].bestdeal_list
         else:
-            hotel_list = botrequests.lowprice.hotel_info(user_dict[message.chat.id].city_id, max_count,
+            hotel_list = botrequests.lowprice.hotel_info(user_dict[message.chat.id].city_id,
+                                                         user_dict[message.chat.id].count_hotel,
                                                          user_dict[message.chat.id].command)
-        for hotel in range(user_dict[message.chat.id].count_hotel):
-            bot.send_message(message.chat.id, f'''{hotel + 1}.Название отеля - {hotel_list[hotel]['name']}
-            Адрес - {hotel_list[hotel]['address']['countryName']},{hotel_list[hotel]['address']['streetAddress'] if 'streetAddress' in hotel_list[hotel]['address'] else 'Нет названия улицы'}
-            Расположение от центра  - {hotel_list[hotel]['landmarks'][0]['distance']}
-            Цена  за ночь - {hotel_list[hotel]['ratePlan']['price']['current']} 
-            Цена за весь период - {int(hotel_list[hotel]['ratePlan']['price']['current'][1:]) *
+        city_list = []
+        hotel_list = hotel_list[:user_dict[message.chat.id].count_hotel]
+        for hotel in hotel_list:
+            bot.send_message(message.chat.id, f'''Название отеля - {hotel['name']}
+            Адрес - {hotel['address']['countryName']},{hotel['address']['streetAddress'] if 'streetAddress' in hotel['address'] else 'Нет названия улицы'}
+            Расположение от центра  - {hotel['landmarks'][0]['distance']}
+            Цена  за ночь - {hotel['ratePlan']['price']['current']} 
+            Цена за весь период - {int(hotel['ratePlan']['price']['current'][1:]) *
                                    int((datetime.strptime(user_dict[message.chat.id].date_out, "%Y-%m-%d") - datetime.strptime(user_dict[message.chat.id].date_in, "%Y-%m-%d")).days)}
-            Ссылка на отель - https://ru.hotels.com/ho{hotel_list[hotel]['id']}
+            Ссылка на отель - https://ru.hotels.com/ho{hotel['id']}
             ''', disable_web_page_preview=True)
             if user_dict[message.chat.id].loading_photo == 'Да':
                 bot.send_message(message.chat.id, 'Фото отеля')
-                photos_id_hotel = hotel_list[hotel]['id']
-                photo_list = botrequests.lowprice.hotel_photo(photos_id_hotel, max_count)
-                for photo in range(user_dict[message.chat.id].count_photo):
-                    photo_url = photo_list[photo]['baseUrl']
+                photos_id_hotel = hotel['id']
+                photo_list = botrequests.lowprice.hotel_photo(photos_id_hotel, user_dict[message.chat.id].count_photo)
+                for photo in photo_list:
+                    photo_url = photo['baseUrl']
                     photo_for_user = photo_url.replace('{size}', 'z')
                     bot.send_photo(message.chat.id, photo_for_user)
+            city_list.append(hotel['name'])
+        city_list = "; ".join(city_list)
+
+        database.databaseSQL.sqlite_create(user_dict[message.chat.id].id, user_dict[message.chat.id].command,
+                                           user_dict[message.chat.id].data, city_list)
     except ValueError:
         bot.send_message(message.from_user.id, "Что-то пошло не так")
