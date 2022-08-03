@@ -1,20 +1,20 @@
 from telebot.types import Message
-from telebot import types
+
 
 import database.databaseSQL
 import sqlite3
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, time
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 import botrequests.lowprice
 import botrequests.bestdeal
 from keyboards.inline.count_hotel import kb_count_hotel
 from keyboards.inline.loading_photo import kb_loading_photo
 from keyboards.inline.count_photos import kb_count_photos
+from keyboards.inline.city import kb_city
 from loader import bot
 from utils.dict_class import user_dict, User
 
 
-# import keyboards.inline.count_hotel
 
 @bot.message_handler(commands=['history'])
 def history_info(message: Message):
@@ -46,31 +46,46 @@ def first_command(message: Message):
     user_dict[message.chat.id].data = data_now
     user_dict[message.chat.id].command = message.text
     msg = bot.send_message(message.from_user.id, "В каком городе будем искать отели?")
-    bot.register_next_step_handler(msg, get_city)
+    bot.register_next_step_handler(msg, city_list)
 
 
-def get_city(message):
+def name_city(message):
     """
-    def get_city - получаем название города где будем искать отели
-    Делаем запрос на количество отелей выводимых на экран
+    def name_city - делаем повторный запрос города в случае, когда запрос не распознан
     """
-    try:
-        city = message.text.capitalize()
-        city_id, name_city = botrequests.lowprice.city_id(city)
-        if city_id is not None:
-            user_dict[message.chat.id].city_id = city_id
-            bot.send_message(message.from_user.id, f'Ищем отели в городе {name_city}')
-            if user_dict[message.chat.id].command == "/bestdeal":
-                msg = bot.send_message(message.from_user.id,
-                                       "Введите минимальную цену проживания в отеле за сутки")
-                bot.register_next_step_handler(msg, min_price_def)
-            else:
-                get_count_hotel(message)
-        else:
-            msg = bot.send_message(message.from_user.id, 'Поиск не распознаёт название города, повторите ввод города')
-            bot.register_next_step_handler(msg, get_city)
-    except ValueError:
-        bot.send_message(message.from_user.id, "Что-то пошло не так")
+    msg = bot.send_message(message.chat.id, 'Введите название города для поиска отеля?')
+    bot.register_next_step_handler(msg, city_list)
+
+def city_list(message):
+    """
+    def city_list - формирует список городов для клавиатуры
+    """
+    cities = botrequests.lowprice.get_city(message.text)
+    user_dict[message.chat.id].city_list = cities
+    if cities:
+        bot.send_message(message.from_user.id, 'Выберите город :', reply_markup=kb_city(cities))
+    else:
+        msg = bot.send_message(message.chat.id, 'Не распознаный запрос')
+        time.sleep(1)
+        name_city(msg)
+
+@bot.callback_query_handler(func=lambda call:call.data.isnumeric())
+def answer(call):
+    """
+        def answer - получаем с клавиатуры город где будем искать отели
+        А так же id города
+    """
+    user_dict[call.message.chat.id].city_id = call.data
+    for elem in user_dict[call.message.chat.id].city_list:
+        if elem['destination_id'] == call.data:
+            bot.send_message(call.message.chat.id, f"Вы выбрали {elem['city_name']}")
+    bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id) # убирает кнопки
+    if user_dict[call.message.chat.id].command == "/bestdeal":
+        msg = bot.send_message(call.from_user.id,
+                               "Введите минимальную цену проживания в отеле за сутки")
+        bot.register_next_step_handler(msg, min_price_def)
+    else:
+        get_count_hotel(call.message)
 
 
 def min_price_def(message):
@@ -218,25 +233,25 @@ def get_count_hotel(message):
     bot.send_message(message.chat.id, text="Какое количество отелей вывести на экран?", reply_markup=kb_count_hotel())
 
 
-@bot.callback_query_handler(func=lambda call: call.data in ['1', '2', '3', '4', '5'])
+@bot.callback_query_handler(func=lambda call: call.data in ['1hotel', '2hotel', '3hotel', '4hotel', '5hotel'])
 def query_handler(call):
     """
        def query_handler - получаем с клавиатуры количество выводимых на экран отелей
        """
     answer = ''
-    if call.data == '1':
+    if call.data == '1hotel':
         answer = '1 отель'
         user_dict[call.message.chat.id].count_hotel = 1
-    elif call.data == '2':
+    elif call.data == '2hotel':
         answer = '2 отеля'
         user_dict[call.message.chat.id].count_hotel = 2
-    elif call.data == '3':
+    elif call.data == '3hotel':
         answer = '3 отеля'
         user_dict[call.message.chat.id].count_hotel = 3
-    elif call.data == '4':
+    elif call.data == '4hotel':
         answer = '4 отеля'
         user_dict[call.message.chat.id].count_hotel = 4
-    elif call.data == '5':
+    elif call.data == '5hotel':
         answer = '5 отелей'
         user_dict[call.message.chat.id].count_hotel = 5
     bot.send_message(call.message.chat.id, f'Вы выбрали {answer}')
@@ -408,12 +423,11 @@ def hotel_information(message):
         hotel_list = hotel_list[:user_dict[message.chat.id].count_hotel]
         for hotel in hotel_list:
             bot.send_message(message.chat.id, f'''Название отеля - {hotel['name']}
-            Адрес - {hotel['address']['countryName']},{hotel['address']['streetAddress'] if 'streetAddress' in hotel['address'] else 'Нет названия улицы'}
-            Расположение от центра  - {hotel['landmarks'][0]['distance']}
-            Цена  за ночь - {hotel['ratePlan']['price']['current']} 
-            Цена за весь период - {int(hotel['ratePlan']['price']['current'][1:]) *
-                                   int((datetime.strptime(user_dict[message.chat.id].date_out, "%Y-%m-%d") - datetime.strptime(user_dict[message.chat.id].date_in, "%Y-%m-%d")).days)}
-            Ссылка на отель - https://ru.hotels.com/ho{hotel['id']}
+Адрес - {hotel['address']['countryName']},{hotel['address']['streetAddress'] if 'streetAddress' in hotel['address'] else 'Нет названия улицы'}
+Расположение от центра  - {hotel['landmarks'][0]['distance']}
+Цена  за ночь - {hotel['ratePlan']['price']['current']} 
+Цена за весь период - {int(hotel['ratePlan']['price']['current'][1:]) * int((datetime.strptime(user_dict[message.chat.id].date_out, "%Y-%m-%d") - datetime.strptime(user_dict[message.chat.id].date_in, "%Y-%m-%d")).days)}
+Ссылка на отель - https://ru.hotels.com/ho{hotel['id']}
             ''', disable_web_page_preview=True)
             if user_dict[message.chat.id].loading_photo == 'Да':
                 bot.send_message(message.chat.id, 'Фото отеля')

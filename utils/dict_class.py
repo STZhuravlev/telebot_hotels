@@ -6,6 +6,7 @@ class User():
         self.id = None
         self.command = None
         self.data = None
+        self.city_list = None
         self.city_id = None
         self.min_price = None
         self.bestdeal_list = None

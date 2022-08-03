@@ -1,6 +1,7 @@
 import random
 import botrequests.requests_api
 from config_data import config
+import re
 
 headers = {
     "X-RapidAPI-Host": "hotels4.p.rapidapi.com",
@@ -8,25 +9,15 @@ headers = {
 }
 
 
-def city_id(name_city):
-    """
-    def city_id - получаем id города, в котором будем искать отели
-    """
-
+def get_city(name_city):
     url = "https://hotels4.p.rapidapi.com/locations/v2/search"
     querystring = {"query": name_city}
     response_new = botrequests.requests_api.request_to_api(url, headers, querystring)
-    if not response_new:
-        return None, None
-    response_hotel_city_group = list(filter(lambda x: x['group'] == 'CITY_GROUP', response_new['suggestions']))
-    destination_id_filter = list(filter(lambda city: city['type'] == 'CITY', response_hotel_city_group[0]['entities']))
-    if not destination_id_filter:
-        return None, None
-    else:
-        for elem_city in destination_id_filter:
-            my_city = elem_city['caption'].replace(name_city[0:3], '', 1)
-            if name_city[0:3] in my_city:
-                return elem_city['destinationId'], elem_city['name']
+    cities = list()
+    for city in response_new['suggestions'][0]['entities']:
+        clear_destination = ', '.join((city['name'], re.findall('(\\w+)[\n<]', city['caption'] + '\n')[-1]))
+        cities.append({'city_name': clear_destination, 'destination_id': city['destinationId']})
+    return cities
 
 
 def hotel_info(destination_id, num, command):

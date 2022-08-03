@@ -31,6 +31,7 @@ def max_price(list_filter, max_price):
     result_filter = list(filter(lambda price: int(price['ratePlan']['price']['current'][1:]) <= max_price, list_filter))
     return result_filter
 
+
 def min_distance(list_filter, min_distance):
     """
        def min_distance - отфильтровываем список отелей по минимальному расстоянию от центра
@@ -38,6 +39,7 @@ def min_distance(list_filter, min_distance):
        """
     result_filter = list(filter( lambda price: float(price ['landmarks'][0]['distance'].split()[0]) >=min_distance, list_filter))
     return result_filter
+
 
 def max_distance(list_filter, max_distance):
     """
