@@ -35,6 +35,7 @@ def hotel_info(destination_id, num, command):
     if not response_new:
         return None
     result_list = response_new['data']['body']['searchResults']['results']
+    result_list = list(filter(lambda x: 'ratePlan' in x, result_list))
     result_sort = sorted(result_list, key=lambda price: int(price['ratePlan']['price']['current'][1:]), reverse=rev)
     return result_sort[:num]
 

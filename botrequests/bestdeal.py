@@ -19,7 +19,12 @@ def min_price(destination_id, min_price):
     if not response_new:
         return None
     result_list = response_new['data']['body']['searchResults']['results']
-    result_filter = list(filter(lambda price: int(price['ratePlan']['price']['current'][1:]) >= min_price, result_list))
+    result_list = list(
+        filter(lambda x: 'ratePlan' in x, result_list))  # исключаем из списка отсутствующие ключи ratePlan
+    result_sorted = sorted(result_list, key=lambda price: int(
+        price['ratePlan']['price']['current'][1:]))  # сортируем по цене для поиска самой низкой цены
+    result_filter = list(
+        filter(lambda price: int(price['ratePlan']['price']['current'][1:]) >= min_price, result_sorted))
     return result_filter
 
 
@@ -37,7 +42,8 @@ def min_distance(list_filter, min_distance):
        def min_distance - отфильтровываем список отелей по минимальному расстоянию от центра
        Если такого нет возвращаем пустой список для повторного запроса минимального расстояния
        """
-    result_filter = list(filter( lambda price: float(price ['landmarks'][0]['distance'].split()[0]) >=min_distance, list_filter))
+    result_filter = list(
+        filter(lambda price: float(price['landmarks'][0]['distance'].split()[0]) > min_distance, list_filter))
     return result_filter
 
 
@@ -46,5 +52,6 @@ def max_distance(list_filter, max_distance):
     def max_distance - отфильтровываем список отелей по максимальному расстоянию от центра
 
     """
-    result_filter = list(filter( lambda price: float(price ['landmarks'][0]['distance'].split()[0]) <=max_distance, list_filter))
+    result_filter = list(
+        filter(lambda price: float(price['landmarks'][0]['distance'].split()[0]) < max_distance, list_filter))
     return result_filter

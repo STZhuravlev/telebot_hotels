@@ -1,9 +1,9 @@
 from telebot.types import Message
-
-
+from telebot import types
 import database.databaseSQL
 import sqlite3
-from datetime import date, timedelta, datetime, time
+from datetime import date, timedelta, datetime
+import time
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 import botrequests.lowprice
 import botrequests.bestdeal
@@ -13,7 +13,6 @@ from keyboards.inline.count_photos import kb_count_photos
 from keyboards.inline.city import kb_city
 from loader import bot
 from utils.dict_class import user_dict, User
-
 
 
 @bot.message_handler(commands=['history'])
@@ -26,9 +25,16 @@ def history_info(message: Message):
         conn = sqlite3.connect('Too_Easy_Travel.db')
         cur = conn.cursor()
         cur.execute(f'SELECT * FROM history_search WHERE user_id={message.from_user.id}')
-        for i in cur.fetchall():
-            bot.send_message(message.from_user.id,
-                             f'Команда = {i[1]}, Дата и время запроса = {i[2]}, Найденные отели = {i[3]} ')
+        request_history = cur.fetchall()
+        if request_history:
+            for elem in request_history[-10:]:
+                bot.send_message(message.from_user.id,
+                                 f"""Команда: {elem[1][1:]}; 
+Дата и время запроса: {elem[2]}; 
+Найденные отели: {elem[3]};""")
+            bot.send_message(message.from_user.id, "Ваши последние 10 запросов")
+        else:
+            bot.send_message(message.from_user.id, "Ваша история поиска отелей пуста ")
         conn.close()
     except sqlite3.OperationalError:
         bot.send_message(message.from_user.id, "База данных ещё пуста")
@@ -45,7 +51,8 @@ def first_command(message: Message):
     data_now = now.strftime("%d-%m-%Y %H:%M")
     user_dict[message.chat.id].data = data_now
     user_dict[message.chat.id].command = message.text
-    msg = bot.send_message(message.from_user.id, "В каком городе будем искать отели?")
+    msg = bot.send_message(message.from_user.id,
+                           "В каком городе будем искать отели? (Ввод города производите на английском языке)")
     bot.register_next_step_handler(msg, city_list)
 
 
@@ -53,8 +60,10 @@ def name_city(message):
     """
     def name_city - делаем повторный запрос города в случае, когда запрос не распознан
     """
-    msg = bot.send_message(message.chat.id, 'Введите название города для поиска отеля?')
+    msg = bot.send_message(message.chat.id,
+                           'Введите название города для поиска отеля? (Ввод города производите на английском языке)')
     bot.register_next_step_handler(msg, city_list)
+
 
 def city_list(message):
     """
@@ -69,7 +78,8 @@ def city_list(message):
         time.sleep(1)
         name_city(msg)
 
-@bot.callback_query_handler(func=lambda call:call.data.isnumeric())
+
+@bot.callback_query_handler(func=lambda call: call.data.isnumeric())
 def answer(call):
     """
         def answer - получаем с клавиатуры город где будем искать отели
@@ -79,10 +89,10 @@ def answer(call):
     for elem in user_dict[call.message.chat.id].city_list:
         if elem['destination_id'] == call.data:
             bot.send_message(call.message.chat.id, f"Вы выбрали {elem['city_name']}")
-    bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id) # убирает кнопки
+    bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id)  # убирает кнопки
     if user_dict[call.message.chat.id].command == "/bestdeal":
         msg = bot.send_message(call.from_user.id,
-                               "Введите минимальную цену проживания в отеле за сутки")
+                               "Введите минимальную цену проживания в отеле за сутки. (Цены указаны в долларах)")
         bot.register_next_step_handler(msg, min_price_def)
     else:
         get_count_hotel(call.message)
@@ -105,12 +115,12 @@ def min_price_def(message):
                 bestdeal_list = botrequests.bestdeal.min_price(user_dict[message.chat.id].city_id, min_price)
                 if not bestdeal_list:
                     msg = bot.send_message(message.from_user.id,
-                                           "К сожеления отелей с такой ценой нет. Введите цену меньше")
+                                           "К сожеления отелей с такой ценой нет. Введите цену меньше. (Цены указаны в долларах)")
                     bot.register_next_step_handler(msg, min_price_def)
                 else:
                     user_dict[message.chat.id].bestdeal_list = bestdeal_list
                     msg = bot.send_message(message.from_user.id,
-                                           "Введите максимальную цену проживания в отеле за сутки")
+                                           "Введите максимальную цену проживания в отеле за сутки. (Цены указаны в долларах)")
                     bot.register_next_step_handler(msg, max_price_def)
     except ValueError:
         bot.send_message(message.from_user.id, "Что-то пошло не так")
@@ -135,16 +145,21 @@ def max_price_def(message):
             max_price_verify(message)
         else:
             max_price = int(message.text)
-            if max_price < user_dict[message.chat.id].min_price:
-                user_dict[message.chat.id].max_price = user_dict[message.chat.id].min_price
+            if max_price < int(user_dict[message.chat.id].bestdeal_list[0]['ratePlan']['price']['current'][1:]):
+                msg = bot.send_message(message.from_user.id,
+                                       f"Отелей в таком диапазоне нет. Цена должна превышать {user_dict[message.chat.id].bestdeal_list[0]['ratePlan']['price']['current']}")
+                bot.register_next_step_handler(msg, max_price_def)
             else:
                 user_dict[message.chat.id].max_price = max_price
-
-            bestdeal_list = botrequests.bestdeal.max_price(user_dict[message.chat.id].bestdeal_list,
-                                                           user_dict[message.chat.id].max_price)
-            user_dict[message.chat.id].bestdeal_list = bestdeal_list
-            msg = bot.send_message(message.from_user.id, "Введите минимальное расстояние отеля от центра")
-            bot.register_next_step_handler(msg, min_distance_def)
+                bestdeal_list = botrequests.bestdeal.max_price(user_dict[message.chat.id].bestdeal_list,
+                                                               user_dict[message.chat.id].max_price)
+                # Сортируем bestdeal_list для по distance для поиска минимального и максимального расстояние от центра
+                bestdeal_list = sorted(bestdeal_list,
+                                       key=lambda distance: float(distance['landmarks'][0]['distance'].split()[0]))
+                user_dict[message.chat.id].bestdeal_list = bestdeal_list
+                msg = bot.send_message(message.from_user.id,
+                                       "Введите минимальное расстояние отеля от центра. (Расстояние указано в километрах)")
+                bot.register_next_step_handler(msg, min_distance_def)
     except ValueError:
         bot.send_message(message.from_user.id, "Что-то пошло не так")
 
@@ -171,16 +186,18 @@ def min_distance_def(message):
             if min_distance < 0:
                 min_distance_verify(message)
             else:
-                user_dict[message.chat.id].min_distance = min_distance
-                bestdeal_list = botrequests.bestdeal.min_distance(user_dict[message.chat.id].bestdeal_list,
-                                                                  min_distance)
-                if not bestdeal_list:
+                if min_distance > float(
+                        user_dict[message.chat.id].bestdeal_list[-1]['landmarks'][0]['distance'].split()[0]):
                     msg = bot.send_message(message.from_user.id,
-                                           "К сожеления отелей на таком расстоянии нет. Введите больше расстояние")
+                                           f"Отелей в таком диапазоне нет. Растояние не должно превышать {user_dict[message.chat.id].bestdeal_list[-1]['landmarks'][0]['distance'].split()[0]}")
                     bot.register_next_step_handler(msg, min_distance_def)
                 else:
+                    user_dict[message.chat.id].min_distance = min_distance
+                    bestdeal_list = botrequests.bestdeal.min_distance(user_dict[message.chat.id].bestdeal_list,
+                                                                      min_distance)
                     user_dict[message.chat.id].bestdeal_list = bestdeal_list
-                    msg = bot.send_message(message.from_user.id, "Введите максимальное расстояние отеля от центра")
+                    msg = bot.send_message(message.from_user.id,
+                                           "Введите максимальное расстояние отеля от центра. (Расстояние указано в километрах)")
                     bot.register_next_step_handler(msg, max_distance_def)
     except ValueError:
         bot.send_message(message.from_user.id, "Что-то пошло не так")
@@ -205,14 +222,16 @@ def max_distance_def(message):
             max_distance_verify(message)
         else:
             max_distance = int(message.text)
-            if max_distance < user_dict[message.chat.id].min_distance:
-                user_dict[message.chat.id].max_distance = user_dict[message.chat.id].min_distance
+            if max_distance < float(user_dict[message.chat.id].bestdeal_list[0]['landmarks'][0]['distance'].split()[0]):
+                msg = bot.send_message(message.from_user.id,
+                                       f"Отелей в таком диапазоне нет. Расстояние должно превышать {user_dict[message.chat.id].bestdeal_list[0]['landmarks'][0]['distance'].split()[0]}")
+                bot.register_next_step_handler(msg, max_distance_def)
             else:
                 user_dict[message.chat.id].max_distance = max_distance
-            bestdeal_list = botrequests.bestdeal.max_distance(user_dict[message.chat.id].bestdeal_list,
-                                                              user_dict[message.chat.id].max_distance)
-            user_dict[message.chat.id].bestdeal_list = bestdeal_list
-            get_count_hotel(message)
+                bestdeal_list = botrequests.bestdeal.max_distance(user_dict[message.chat.id].bestdeal_list,
+                                                                  user_dict[message.chat.id].max_distance)
+                user_dict[message.chat.id].bestdeal_list = bestdeal_list
+                get_count_hotel(message)
     except ValueError:
         bot.send_message(message.from_user.id, "Что-то пошло не так")
 
@@ -289,7 +308,8 @@ def get_count_photos(message):
 
     """
 
-    bot.send_message(message.chat.id, text="Какое количество фотографий отеля вывести на экран?", reply_markup=kb_count_photos())
+    bot.send_message(message.chat.id, text="Какое количество фотографий отеля вывести на экран?",
+                     reply_markup=kb_count_photos())
 
 
 @bot.callback_query_handler(func=lambda call: call.data in ['1photo', '2photo', '3photo', '4photo', '5photo'])
@@ -419,6 +439,8 @@ def hotel_information(message):
             hotel_list = botrequests.lowprice.hotel_info(user_dict[message.chat.id].city_id,
                                                          user_dict[message.chat.id].count_hotel,
                                                          user_dict[message.chat.id].command)
+            if not isinstance(hotel_list, list):
+                bot.send_message(message.chat.id, f'Ошибка: {hotel_list}')
         city_list = []
         hotel_list = hotel_list[:user_dict[message.chat.id].count_hotel]
         for hotel in hotel_list:
@@ -433,10 +455,13 @@ def hotel_information(message):
                 bot.send_message(message.chat.id, 'Фото отеля')
                 photos_id_hotel = hotel['id']
                 photo_list = botrequests.lowprice.hotel_photo(photos_id_hotel, user_dict[message.chat.id].count_photo)
+                photo_hotel_list = []
                 for photo in photo_list:
                     photo_url = photo['baseUrl']
                     photo_for_user = photo_url.replace('{size}', 'z')
-                    bot.send_photo(message.chat.id, photo_for_user)
+                    photo_hotel_list.append(photo_for_user)
+                bot.send_media_group(message.chat.id,
+                                     media=[types.InputMediaPhoto(el_photo) for el_photo in photo_hotel_list])
             city_list.append(hotel['name'])
         city_list = "; ".join(city_list)
 
