@@ -1,12 +1,13 @@
 import botrequests.requests_api
 from config_data import config
+from log.loguru_log import *
 
 headers = {
     "X-RapidAPI-Host": "hotels4.p.rapidapi.com",
     "X-RapidAPI-Key": config.RAPID_API_KEY
 }
 
-
+@logger.catch()
 def min_price(destination_id, min_price):
     """
     def min_price - отфильтровываем список отелей по минимальной цене
@@ -27,7 +28,7 @@ def min_price(destination_id, min_price):
         filter(lambda price: int(price['ratePlan']['price']['current'][1:]) >= min_price, result_sorted))
     return result_filter
 
-
+@logger.catch()
 def max_price(list_filter, max_price):
     """
     def max_price - отфильтровываем список отелей по максимальной цене
@@ -36,7 +37,7 @@ def max_price(list_filter, max_price):
     result_filter = list(filter(lambda price: int(price['ratePlan']['price']['current'][1:]) <= max_price, list_filter))
     return result_filter
 
-
+@logger.catch()
 def min_distance(list_filter, min_distance):
     """
        def min_distance - отфильтровываем список отелей по минимальному расстоянию от центра
@@ -46,7 +47,7 @@ def min_distance(list_filter, min_distance):
         filter(lambda price: float(price['landmarks'][0]['distance'].split()[0]) > min_distance, list_filter))
     return result_filter
 
-
+@logger.catch()
 def max_distance(list_filter, max_distance):
     """
     def max_distance - отфильтровываем список отелей по максимальному расстоянию от центра
