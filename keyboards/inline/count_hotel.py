@@ -1,5 +1,6 @@
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+
 def kb_count_hotel():
     """
     def kb_count_hotel - клавиатура для получения количества выводимых отелей на экран

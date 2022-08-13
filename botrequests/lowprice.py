@@ -1,7 +1,8 @@
 import random
+import re
+
 import botrequests.requests_api
 from config_data import config
-import re
 from log.loguru_log import *
 
 headers = {

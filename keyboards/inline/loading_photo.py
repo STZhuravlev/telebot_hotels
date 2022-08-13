@@ -1,5 +1,6 @@
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+
 def kb_loading_photo():
     """
     def kb_count_hotel - клавиатура для вывода фотографий на экран

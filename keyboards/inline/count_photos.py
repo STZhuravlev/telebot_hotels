@@ -1,5 +1,6 @@
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+
 def kb_count_photos():
     """
     def kb_count_photos - клавиатура для получения количества выводимых фотографий на экран

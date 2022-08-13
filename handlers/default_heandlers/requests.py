@@ -1,19 +1,21 @@
-from telebot.types import Message
-from telebot import types
-from log.loguru_log import *
-import database.databaseSQL
 import sqlite3
-from datetime import date, timedelta, datetime
 import time
-from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
-import botrequests.lowprice
+from datetime import date, datetime, timedelta
+
+from telebot import types
+from telebot.types import Message
+from telegram_bot_calendar import LSTEP, DetailedTelegramCalendar
+
 import botrequests.bestdeal
-from keyboards.inline.count_hotel import kb_count_hotel
-from keyboards.inline.loading_photo import kb_loading_photo
-from keyboards.inline.count_photos import kb_count_photos
+import botrequests.lowprice
+import database.databaseSQL
 from keyboards.inline.city import kb_city
+from keyboards.inline.count_hotel import kb_count_hotel
+from keyboards.inline.count_photos import kb_count_photos
+from keyboards.inline.loading_photo import kb_loading_photo
 from loader import bot
-from utils.dict_class import user_dict, User
+from log.loguru_log import *
+from utils.dict_class import User, user_dict
 
 
 @logger.catch()

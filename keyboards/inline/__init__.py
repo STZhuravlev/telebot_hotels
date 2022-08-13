@@ -1,4 +1,1 @@
-from . import count_hotel
-from . import loading_photo
-from . import count_photos
-from . import city
+from . import city, count_hotel, count_photos, loading_photo
