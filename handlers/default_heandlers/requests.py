@@ -24,22 +24,24 @@ def history_info(message: Message):
     """
     def history_info - выводим историю поиска отелей
     """
-
-    bot.send_message(message.from_user.id, "Выводим историю поиска отелей")
-    conn = sqlite3.connect('Too_Easy_Travel.db')
-    cur = conn.cursor()
-    cur.execute(f'SELECT * FROM history_search WHERE user_id={message.from_user.id}')
-    request_history = cur.fetchall()
-    if request_history:
-        for elem in request_history[-10:]:
-            bot.send_message(message.from_user.id,
-                             f"""Команда: {elem[1][1:]}; 
-Дата и время запроса: {elem[2]}; 
-Найденные отели: {elem[3]};""")
-        bot.send_message(message.from_user.id, "Ваши последние 10 запросов")
-    else:
-        bot.send_message(message.from_user.id, "Ваша история поиска отелей пуста ")
-    conn.close()
+    try:
+        conn = sqlite3.connect('Too_Easy_Travel.db')
+        cur = conn.cursor()
+        cur.execute(f'SELECT * FROM history_search WHERE user_id={message.from_user.id}')
+        request_history = cur.fetchall()
+        if request_history:
+            bot.send_message(message.from_user.id, "Выводим историю поиска отелей")
+            for elem in request_history[-10:]:
+                bot.send_message(message.from_user.id,
+                                 f"""Команда: {elem[1][1:]}; 
+    Дата и время запроса: {elem[2]}; 
+    Найденные отели: {elem[3]};""")
+            bot.send_message(message.from_user.id, "Ваши последние 10 запросов")
+        else:
+            bot.send_message(message.from_user.id, "Ваша история поиска отелей пуста ")
+        conn.close()
+    except sqlite3.OperationalError:
+        bot.send_message(message.from_user.id, "Таблица ещё не создана")
 
 
 @logger.catch()
