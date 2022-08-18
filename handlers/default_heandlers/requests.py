@@ -24,6 +24,7 @@ def history_info(message: Message):
     """
     def history_info - выводим историю поиска отелей
     """
+    logger.info(f"Пользователь c ID {message.from_user.id} выбрал команду - '{message.text}'")
     try:
         conn = sqlite3.connect('Too_Easy_Travel.db')
         cur = conn.cursor()
@@ -50,6 +51,7 @@ def first_command(message: Message):
     """
     def first_command - делаем запрос в каком городе будем искать отели
     """
+    logger.info(f"Пользователь c ID {message.from_user.id} выбрал команду - '{message.text}'")
     user_dict[message.chat.id] = User()
     user_dict[message.chat.id].id = message.chat.id
     now = datetime.now()
@@ -66,6 +68,7 @@ def name_city(message):
     """
     def name_city - делаем повторный запрос города в случае, когда запрос не распознан
     """
+    logger.info(f"Пользователь c ID {message.from_user.id} запрос с таким названием не найден")
     msg = bot.send_message(message.chat.id,
                            'Введите название города для поиска отеля? (Ввод города производите на английском языке)')
     bot.register_next_step_handler(msg, city_list)
@@ -76,6 +79,7 @@ def city_list(message):
     """
     def city_list - формирует список городов для клавиатуры
     """
+    logger.info(f"Пользователь c ID {message.from_user.id}  ввёл в поиск города текст - '{message.text}'")
     cities = botrequests.lowprice.get_city(message.text)
     user_dict[message.chat.id].city_list = cities
     if cities:
@@ -96,6 +100,7 @@ def answer(call):
     user_dict[call.message.chat.id].city_id = call.data
     for elem in user_dict[call.message.chat.id].city_list:
         if elem['destination_id'] == call.data:
+            logger.info(f"Пользователь c ID {call.message.chat.id} выбрал город - '{elem['city_name']}'")
             bot.send_message(call.message.chat.id, f"Вы выбрали {elem['city_name']}")
     bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id)  # убирает кнопки
     if user_dict[call.message.chat.id].command == "/bestdeal":
@@ -111,6 +116,7 @@ def min_price_def(message):
     """
     def min_price_def - получаем минимальную цену для фильтрации отелей
     """
+    logger.info(f"Пользователь c ID {message.from_user.id}  ввёл минимальную цену - '{message.text}'")
     min_price = message.text
     if not min_price.isdigit():
         min_price_verify(message)
@@ -147,7 +153,7 @@ def max_price_def(message):
     """
         def max_price_def - получаем максимальную цену для фильтрации отелей
     """
-
+    logger.info(f"Пользователь c ID {message.from_user.id}  ввёл максимальную цену - '{message.text}'")
     max_price = message.text
     if not max_price.isdigit():
         max_price_verify(message)
@@ -185,7 +191,7 @@ def min_distance_def(message):
     """
     def min_distance_def - получаем минимальное  расстояние от центра для фильтрации отелей
     """
-
+    logger.info(f"Пользователь c ID {message.from_user.id}  ввёл минимальное расстояние - '{message.text}'")
     min_distance = message.text
     if not min_distance.isdigit():
         min_distance_verify(message)
@@ -224,6 +230,7 @@ def max_distance_def(message):
     """
         def max_distance_def - получаем максимальную расстояние от центра для фильтрации отелей
     """
+    logger.info(f"Пользователь c ID {message.from_user.id}  ввёл максимальное расстояние - '{message.text}'")
     max_distance = message.text
     if not max_distance.isdigit():
         max_distance_verify(message)
@@ -281,6 +288,7 @@ def query_handler(call):
     elif call.data == '5hotel':
         answer = '5 отелей'
         user_dict[call.message.chat.id].count_hotel = 5
+    logger.info(f"Пользователь c ID {call.message.chat.id}  выводит на экран - '{answer}'")
     bot.send_message(call.message.chat.id, f'Вы выбрали {answer}')
     get_loading_photo(call.message)
     bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id)  # убирает кнопки
@@ -302,6 +310,7 @@ def query_handler(call):
     def query_handler - получаем с клавиатуры  ответ от пользователя загружать фотографии или нет
 
     """
+    logger.info(f"Пользователь c ID {call.message.chat.id}  ответил на вопрос про загрузку фотографий - '{call.data}'")
     if call.data == 'Да':
         user_dict[call.message.chat.id].loading_photo = call.data
         get_count_photos(call.message)
@@ -340,6 +349,8 @@ def query_handler(call):
         user_dict[call.message.chat.id].count_photo = 4
     elif call.data == '5photo':
         user_dict[call.message.chat.id].count_photo = 5
+    logger.info(
+        f"Пользователь c ID {call.message.chat.id}  выводит на экран - '{user_dict[call.message.chat.id].count_photo}' фото отеля")
     set_date_in(call.message)
     bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id)  # убирает кнопки
 
@@ -385,6 +396,9 @@ def cal(callback_query):
                               callback_query.message.chat.id,
                               callback_query.message.message_id)
         set_date_input(chat_id=callback_query.message.chat.id, date_in=str(result))
+        logger.info(
+            f"Пользователь c ID {callback_query.message.chat.id}  выбрал дату заезда - '{user_dict[callback_query.message.chat.id].date_in}'")
+
         date_out(callback_query.message.chat.id)
 
 
@@ -441,6 +455,8 @@ def cal(callback_query):
                               callback_query.message.chat.id,
                               callback_query.message.message_id)
         set_date_output(chat_id=callback_query.message.chat.id, date_out=str(result))
+        logger.info(
+            f"Пользователь c ID {callback_query.message.chat.id}  выбрал дату выезда - '{user_dict[callback_query.message.chat.id].date_out}'")
         hotel_information(callback_query.message)
 
 
