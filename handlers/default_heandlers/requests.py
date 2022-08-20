@@ -3,7 +3,7 @@ import time
 from datetime import date, datetime, timedelta
 
 from telebot import types
-from telebot.types import Message
+from telebot.types import Message, CallbackQuery
 from telegram_bot_calendar import LSTEP, DetailedTelegramCalendar
 
 import botrequests.bestdeal
@@ -20,7 +20,7 @@ from utils.dict_class import User, user_dict
 
 @logger.catch()
 @bot.message_handler(commands=['history'])
-def history_info(message: Message):
+def history_info(message: Message) -> None:
     """
     def history_info - выводим историю поиска отелей
     """
@@ -35,8 +35,8 @@ def history_info(message: Message):
             for elem in request_history[-10:]:
                 bot.send_message(message.from_user.id,
                                  f"""Команда: {elem[1][1:]}; 
-    Дата и время запроса: {elem[2]}; 
-    Найденные отели: {elem[3]};""")
+Дата и время запроса: {elem[2]}; 
+Найденные отели: {elem[3]};""")
             bot.send_message(message.from_user.id, "Ваши последние 10 запросов")
         else:
             bot.send_message(message.from_user.id, "Ваша история поиска отелей пуста ")
@@ -47,7 +47,7 @@ def history_info(message: Message):
 
 @logger.catch()
 @bot.message_handler(commands=['lowprice', 'highprice', 'bestdeal'])
-def first_command(message: Message):
+def first_command(message: Message) -> None:
     """
     def first_command - делаем запрос в каком городе будем искать отели
     """
@@ -64,7 +64,7 @@ def first_command(message: Message):
 
 
 @logger.catch()
-def name_city(message):
+def name_city(message: Message) -> None:
     """
     def name_city - делаем повторный запрос города в случае, когда запрос не распознан
     """
@@ -75,7 +75,7 @@ def name_city(message):
 
 
 @logger.catch()
-def city_list(message):
+def city_list(message: Message) -> None:
     """
     def city_list - формирует список городов для клавиатуры
     """
@@ -92,7 +92,7 @@ def city_list(message):
 
 @logger.catch()
 @bot.callback_query_handler(func=lambda call: call.data.isnumeric())
-def answer(call):
+def answer(call: CallbackQuery) -> None:
     """
         def answer - получаем с клавиатуры город где будем искать отели
         А так же id города
@@ -112,7 +112,7 @@ def answer(call):
 
 
 @logger.catch()
-def min_price_def(message):
+def min_price_def(message: Message) -> None:
     """
     def min_price_def - получаем минимальную цену для фильтрации отелей
     """
@@ -139,7 +139,7 @@ def min_price_def(message):
 
 
 @logger.catch()
-def min_price_verify(message):
+def min_price_verify(message: Message) -> None:
     """
     def min_price_verify - верификация значения минимальная цена
     На случай, когда пользователь вводит не число или число меньше 0
@@ -149,7 +149,7 @@ def min_price_verify(message):
 
 
 @logger.catch()
-def max_price_def(message):
+def max_price_def(message: Message) -> None:
     """
         def max_price_def - получаем максимальную цену для фильтрации отелей
     """
@@ -177,7 +177,7 @@ def max_price_def(message):
 
 
 @logger.catch()
-def max_price_verify(message):
+def max_price_verify(message: Message) -> None:
     """
     def max_price_verify - верификация значения максимальная цена
     На случай, когда пользователь вводит не число
@@ -187,7 +187,7 @@ def max_price_verify(message):
 
 
 @logger.catch()
-def min_distance_def(message):
+def min_distance_def(message: Message) -> None:
     """
     def min_distance_def - получаем минимальное  расстояние от центра для фильтрации отелей
     """
@@ -216,7 +216,7 @@ def min_distance_def(message):
 
 
 @logger.catch()
-def min_distance_verify(message):
+def min_distance_verify(message: Message) -> None:
     """
     def min_distance_verify - верификация значения минимальное расстояние от центра
     На случай, когда пользователь вводит не число иличисло меньше 0
@@ -226,7 +226,7 @@ def min_distance_verify(message):
 
 
 @logger.catch()
-def max_distance_def(message):
+def max_distance_def(message: Message) -> None:
     """
         def max_distance_def - получаем максимальную расстояние от центра для фильтрации отелей
     """
@@ -249,7 +249,7 @@ def max_distance_def(message):
 
 
 @logger.catch()
-def max_distance_verify(message):
+def max_distance_verify(message: Message) -> None:
     """
     def max_distance_verify - верификация значения максимальная цена
     На случай, когда пользователь вводит не число
@@ -259,7 +259,7 @@ def max_distance_verify(message):
 
 
 @logger.catch()
-def get_count_hotel(message):
+def get_count_hotel(message: Message) -> None:
     """
     def get_count_hotel - вызываем клавиатуру для получения количества отелей для вывода на экран
     """
@@ -268,7 +268,7 @@ def get_count_hotel(message):
 
 @logger.catch()
 @bot.callback_query_handler(func=lambda call: call.data in ['1hotel', '2hotel', '3hotel', '4hotel', '5hotel'])
-def query_handler(call):
+def query_handler(call: CallbackQuery) -> None:
     """
        def query_handler - получаем с клавиатуры количество выводимых на экран отелей
        """
@@ -295,7 +295,7 @@ def query_handler(call):
 
 
 @logger.catch()
-def get_loading_photo(message):
+def get_loading_photo(message: Message) -> None:
     """
     def get_loading_photo - вызываем клавиатуру для запроса у пользователя загружать фотографии или нет
 
@@ -305,7 +305,7 @@ def get_loading_photo(message):
 
 @logger.catch()
 @bot.callback_query_handler(func=lambda call: call.data in ['Да', 'Нет'])
-def query_handler(call):
+def query_handler(call: CallbackQuery) -> None:
     """
     def query_handler - получаем с клавиатуры  ответ от пользователя загружать фотографии или нет
 
@@ -321,7 +321,7 @@ def query_handler(call):
 
 
 @logger.catch()
-def get_count_photos(message):
+def get_count_photos(message: Message) -> None:
     """
     get_count_photos - вызываем клавиатуру для получения количества фотографий для вывода на экран
 
@@ -333,7 +333,7 @@ def get_count_photos(message):
 
 @logger.catch()
 @bot.callback_query_handler(func=lambda call: call.data in ['1photo', '2photo', '3photo', '4photo', '5photo'])
-def query_handler(call):
+def query_handler(call: CallbackQuery) -> None:
     """
     query_handler - получаем с клавиатуры количество фотографий, которое выведем на экран
 
@@ -356,7 +356,7 @@ def query_handler(call):
 
 
 @logger.catch()
-def set_date_in(message):
+def set_date_in(message: Message) -> None:
     """
     def set_date_in - функция вызова даты заезда
     """
@@ -368,7 +368,7 @@ def set_date_in(message):
 
 
 @logger.catch()
-def set_date_input(chat_id, date_in):
+def set_date_input(chat_id: int, date_in: str) -> None:
     """
     def set_date_input - записываем дату заезда
     """
@@ -377,7 +377,7 @@ def set_date_input(chat_id, date_in):
 
 @logger.catch()
 @bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=1))
-def cal(callback_query):
+def cal(callback_query: CallbackQuery) -> None:
     """
     Функция обработчик календаря, выводит клавиатуру с календарем и ожидает ответ,
     передает ответ в БД, и переходит к следующему шагу
@@ -403,15 +403,15 @@ def cal(callback_query):
 
 
 @logger.catch()
-def get_date_input(chat_id):
+def get_date_input(chat_id: int) -> str:
     """
     def get_date_input - получаем дату заезда
     """
-    return (user_dict[chat_id].date_in)
+    return user_dict[chat_id].date_in
 
 
 @logger.catch()
-def date_out(chat_id):
+def date_out(chat_id: int) -> None:
     """
     def date_out - функция вызова даты въезда
     """
@@ -425,7 +425,7 @@ def date_out(chat_id):
 
 
 @logger.catch()
-def set_date_output(chat_id, date_out):
+def set_date_output(chat_id: int, date_out: str) -> None:
     """
     def set_date_output - записываем дату выезда
     """
@@ -434,7 +434,7 @@ def set_date_output(chat_id, date_out):
 
 @logger.catch()
 @bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=2))
-def cal(callback_query):
+def cal(callback_query: CallbackQuery) -> None:
     """
     def cal - функция обработчик календаря, выводит клавиатуру с календарем и ожидает ответ,
     передает ответ в БД, и переходит к следующему шагу
@@ -461,7 +461,7 @@ def cal(callback_query):
 
 
 @logger.catch()
-def hotel_information(message):
+def hotel_information(message: Message) -> None:
     """
     def hotel_information - вывод информации по отелям на экран пользователя
     hotel_list - получаем список отелей
@@ -475,7 +475,7 @@ def hotel_information(message):
                                                      user_dict[message.chat.id].command)
         if not isinstance(hotel_list, list):
             bot.send_message(message.chat.id, f'Ошибка: {hotel_list}')
-    city_list = []
+    data_hotel_list = []
     hotel_list = hotel_list[:user_dict[message.chat.id].count_hotel]
     for hotel in hotel_list:
         bot.send_message(message.chat.id, f'''Название отеля - {hotel['name']}
@@ -496,8 +496,8 @@ def hotel_information(message):
                 photo_hotel_list.append(photo_for_user)
             bot.send_media_group(message.chat.id,
                                  media=[types.InputMediaPhoto(el_photo) for el_photo in photo_hotel_list])
-        city_list.append(hotel['name'])
-    city_list = "; ".join(city_list)
+        data_hotel_list.append(hotel['name'])
+    data_hotel_list = "; ".join(data_hotel_list)
 
     database.databaseSQL.sqlite_create(user_dict[message.chat.id].id, user_dict[message.chat.id].command,
-                                       user_dict[message.chat.id].data, city_list)
+                                       user_dict[message.chat.id].data, data_hotel_list)

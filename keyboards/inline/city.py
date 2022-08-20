@@ -1,7 +1,7 @@
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-def kb_city(cities):
+def kb_city(cities: list) -> InlineKeyboardMarkup:
     """
     def kb_city - клавиатура для вывода городов по запросу пользователя
     """

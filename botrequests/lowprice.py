@@ -1,5 +1,6 @@
 import random
 import re
+from typing import List, Any
 
 import botrequests.requests_api
 from config_data import config
@@ -10,8 +11,9 @@ headers = {
     "X-RapidAPI-Key": config.RAPID_API_KEY
 }
 
+
 @logger.catch()
-def get_city(name_city):
+def get_city(name_city: str) -> List:
     url = "https://hotels4.p.rapidapi.com/locations/v2/search"
     querystring = {"query": name_city}
     response_new = botrequests.requests_api.request_to_api(url, headers, querystring)
@@ -21,8 +23,9 @@ def get_city(name_city):
         cities.append({'city_name': clear_destination, 'destination_id': city['destinationId']})
     return cities
 
+
 @logger.catch()
-def hotel_info(destination_id, num, command):
+def hotel_info(destination_id: int, num: int, command: str) -> Any:
     """
     def hotel_info - получаем информацию по отелям
     """
@@ -41,8 +44,9 @@ def hotel_info(destination_id, num, command):
     result_sort = sorted(result_list, key=lambda price: int(price['ratePlan']['price']['current'][1:]), reverse=rev)
     return result_sort[:num]
 
+
 @logger.catch()
-def hotel_photo(photos_id_hotel, num):
+def hotel_photo(photos_id_hotel: int, num: int) -> Any:
     """
     def hotel_photo -  получаем фотографии отеля
     """

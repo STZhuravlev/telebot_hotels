@@ -1,8 +1,8 @@
 user_dict = dict()
 
 
-class User():
-    def __init__(self):
+class User:
+    def __init__(self: any) -> None:
         self.id = None
         self.command = None
         self.data = None
